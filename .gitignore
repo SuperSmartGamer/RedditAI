@@ -8,4 +8,9 @@ music/*
 subtitles/*
 tts_output/*
 audio/*
-!*/   
+!temp/**   # Include all subfolders in temp
+!reddit_videos/**   # Include all subfolders in reddit_videos
+!music/**   # Include all subfolders in music
+!subtitles/**   # Include all subfolders in subtitles
+!tts_output/**   # Include all subfolders in tts_output
+!audio/**   # Include all subfolders in audio
