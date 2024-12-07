@@ -4,9 +4,8 @@
 *.srt
 temp/*
 reddit_videos/*
-clips/*
-!clips/
 music/*
 subtitles/*
 tts_output/*
 audio/*
+!*/   
