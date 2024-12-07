@@ -1,0 +1,12 @@
+*.tmp
+*.mp4
+*.mp3
+*.srt
+temp/*
+reddit_videos/*
+clips/*
+!clips/
+music/*
+subtitles/*
+tts_output/*
+audio/*
