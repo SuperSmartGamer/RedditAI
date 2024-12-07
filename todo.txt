@@ -1,0 +1,6 @@
+add sorting to comments (completed)
+make 60fps (on hold)
+fix subtitles timing
+add more clips and audio
+nsfw handling
+thumbnails
