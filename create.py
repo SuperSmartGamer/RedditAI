@@ -5,74 +5,83 @@ def transcribe_audio_to_srt(input_audio, output_srt_file):
     model = whisper.load_model("base")
     result = model.transcribe(input_audio)
     
-    with open(output_srt_file, 'w') as f:
-        subtitle_counter = 1  # To track subtitle numbering
+    with open(output_srt_file, 'w', encoding='utf-8') as f:
+        # Track the last end time to prevent overlap
+        last_end_time = 0
+        subtitle_counter = 1
 
         for segment in result['segments']:
-            subtitle_text = segment.get('text', '')
-
-            # Split text into sentences
-            sentences = split_into_sentences(subtitle_text)
+            subtitle_text = segment.get('text', '').strip()
             
-            # Calculate time for each sentence
-            segment_duration = segment['end'] - segment['start']
-            sentence_duration = segment_duration / len(sentences) if sentences else 0
-
-            start_time = segment['start']
-
-            # Process each sentence individually
-            for sentence in sentences:
-                # Break sentence into 24-character chunks
-                chunks = break_into_chunks(sentence, 24)
-
-                # Calculate time for each chunk
-                chunk_duration = sentence_duration / len(chunks) if chunks else 0
-
-                # Write each chunk with its own timestamp
-                for chunk in chunks:
-                    end_time = start_time + chunk_duration
-                    f.write(f"{subtitle_counter}\n")
-                    f.write(f"{format_time(start_time)} --> {format_time(end_time)}\n")
-                    f.write(f"{chunk.strip()}\n")
-                    f.write("\n")
-                    subtitle_counter += 1
-                    start_time = end_time  # Update start time for the next chunk
+            if not subtitle_text:
+                continue
+            
+            # More intelligent chunking
+            chunks = smart_chunk_text(subtitle_text, max_length=40)
+            
+            # Calculate base timing
+            segment_start = segment['start']
+            segment_end = segment['end']
+            segment_duration = segment_end - segment_start
+            
+            # Dynamically adjust chunk duration
+            chunk_duration = segment_duration / len(chunks)
+            
+            for i, chunk in enumerate(chunks):
+                # Calculate precise start and end times
+                chunk_start = max(last_end_time, segment_start + i * chunk_duration)
+                chunk_end = min(segment_end, chunk_start + max(chunk_duration, 1.0))
+                
+                # Ensure minimum 0.5 second display time, max 3 seconds
+                display_time = max(0.5, min(chunk_end - chunk_start, 3.0))
+                
+                # Write subtitle
+                f.write(f"{subtitle_counter}\n")
+                f.write(f"{format_time(chunk_start)} --> {format_time(chunk_start + display_time)}\n")
+                f.write(f"{chunk.strip()}\n\n")
+                
+                # Update tracking variables
+                last_end_time = chunk_start + display_time
+                subtitle_counter += 1
 
     print(f"Subtitles saved to: {output_srt_file}")
 
-def format_time(seconds):
-    minutes, seconds = divmod(seconds, 60)
-    hours, minutes = divmod(minutes, 60)
-    milliseconds = int((seconds % 1) * 1000)
-    return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02},{milliseconds:03}"
-
-def split_into_sentences(text):
-    # Split text into sentences based on punctuation
-    return re.split(r'(?<=[.?!])\s+', text)
-
-def break_into_chunks(text, max_length):
+def smart_chunk_text(text, max_length=40):
+    """
+    Intelligently chunk text while preserving meaning and readability
+    """
     words = text.split()
     chunks = []
-    current_chunk = ""
+    current_chunk = []
+    current_length = 0
 
     for word in words:
-        # If adding this word exceeds the max length, start a new chunk
-        if len(current_chunk) + len(word) + 1 <= max_length:
-            if current_chunk:
-                current_chunk += " " + word
-            else:
-                current_chunk = word
+        # Prioritize meaningful breaks
+        if current_length + len(word) + (1 if current_length > 0 else 0) > max_length:
+            # Add current chunk and start new one
+            chunks.append(' '.join(current_chunk))
+            current_chunk = [word]
+            current_length = len(word)
         else:
-            chunks.append(current_chunk)
-            current_chunk = word
+            current_chunk.append(word)
+            current_length += len(word) + (1 if current_length > 0 else 0)
 
-    # Add the last chunk if it exists
+    # Add final chunk
     if current_chunk:
-        chunks.append(current_chunk)
+        chunks.append(' '.join(current_chunk))
 
     return chunks
 
+def format_time(seconds):
+    """
+    Precise time formatting for SRT
+    """
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    milliseconds = int((seconds % 1) * 1000)
+    return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d},{milliseconds:03d}"
+
 # Example usage
-#input_audio = "input.mp3"  # Replace with your audio file path
-#output_srt_file = "subtitles.srt"
-#transcribe_audio_to_srt(input_audio, output_srt_file)
+# input_audio = "input.mp3"
+# output_srt_file = "subtitles.srt"
+# transcribe_audio_to_srt(input_audio, output_srt_file)

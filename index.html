@@ -60,15 +60,17 @@
 }
 
 #subreddit {
-    padding-top: 30px;  /* 10px * 3 */
+    /*padding-top: 30px;   10px * 3 */
     width: 100%;  /* No change */
-    height: 90px;  /* 30px * 3 */
-    margin-top: 30px;  /* 10px * 3 */
+    margin-top: 30%;
+    margin:0;  /* 10px * 3 */
     border: 6px solid transparent;  /* 2px * 3 */
     color: rgb(182,196,213);
     position: relative;
     font-family: 'Inter', sans-serif;
     font-size: 3em;
+    
+    padding-top:15px ;
 }
 
 #box {
@@ -83,17 +85,43 @@ html {
     background-color: lawngreen;
 }
 
+#box2{
+    
+    display: flex;
+    position: relative;
+    width: 100%;
+   
+    flex-direction: column;
+}
+
+#username{
+    
+    width: 100%;  /* No change */
+    height: 90px;  /* 30px * 3 */
+
+    border: 6px solid transparent;  /* 2px * 3 */
+    color: rgba(182, 196, 213, 0.562);
+    position: relative;
+    font-family: 'Inter', sans-serif;
+    font-size: 2em;
+
+}
+
    </style>
 </head>
 <body>
 
 <div id="back">
     <div id="center">
-        <div id="box"><div id="icon">
-            <img src="channel_profile.jpg" alt="Profile Icon">
-        </div>
-        
-            <div id="subreddit">r/askreddit </div>
+        <div id="box">
+            
+                <div id="icon">
+                <img src="channel_profile.jpg" alt="Profile Icon">
+                </div>
+            <div id="box2">
+                <div id="subreddit">r/askreddit</div>
+                <div id="username">u/StillPillWill</div>
+            </div>
         </div>
         <div id="textbox">
             How do you respond when someone asks how you're doing, but you're actually having a tough day?

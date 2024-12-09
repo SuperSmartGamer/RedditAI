@@ -90,7 +90,7 @@ def create_video(mp3_file, srt_file, output_file, aspect_ratio="16:9", backgroun
     )
     
     final_video = CompositeVideoClip([background] + subtitle_clips).set_audio(audio).set_duration(audio.duration)
-    final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac', audio_fps=44100)
+    final_video.write_videofile(output_file, fps=60, codec='libx264', audio_codec='aac', audio_fps=44100)
     
     audio.close()
     final_video.close()

@@ -5,7 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from PIL import Image
 from io import BytesIO
 
-def thumbnail_gen(subreddit_text, textbox_text, output_filepath, html_file_path):
+def thumbnail_gen(subreddit_text, textbox_text, username, output_filepath, html_file_path):
     # Set up WebDriver (use Chrome or Firefox)
     options = webdriver.ChromeOptions()
     options.add_argument("--headless")  # Run browser in headless mode (no GUI)
@@ -26,6 +26,10 @@ def thumbnail_gen(subreddit_text, textbox_text, output_filepath, html_file_path)
         textbox_element = wait.until(EC.presence_of_element_located((By.ID, 'textbox')))
         driver.execute_script("arguments[0].innerText = arguments[1]", textbox_element, textbox_text)
         
+        username_element = wait.until(EC.presence_of_element_located((By.ID, 'username')))
+        driver.execute_script("arguments[0].innerText = arguments[1]", username_element, username)
+        
+
         # Optionally, modify other elements (for example, change text, background color, etc.)
         # Example: Change background color of #back element
         

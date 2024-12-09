@@ -12,7 +12,7 @@ from videofy import create_video
 from int_to_word import *
 from moviepy.editor import VideoFileClip
 from word2number import w2n  # Ensure this is imported
-
+from thumbnail_generator import thumbnail_gen
 
 
 
@@ -137,6 +137,14 @@ def trim_videos_in_directory(directory, max_length):
                 video.write_videofile(video_path, codec="libx264")  # Specify codec for saving
                 print(f"Trimmed: {filename}")
 
+def thumnailify(username="", subreddit="", output_path="temp", title=""):
+    thumbnail_gen(
+    subreddit_text=subreddit,
+    textbox_text=title,
+    output_filepath=output_path,
+    html_file_path="file:///D:/reddit/index.html"
+)
+
 
 def main(data):
     for x in data:
@@ -182,6 +190,6 @@ def main(data):
 main(fetch_reddit_posts( 
     sorting_method="top", 
     time_frame="day", 
-    num_posts=1, 
+    num_posts=3, 
     num_comments=10
 ))

@@ -11,7 +11,8 @@ def fetch_reddit_posts(subreddit="askreddit", sorting_method='top', time_frame='
     :param num_posts: The number of posts to retrieve.
     :param num_comments: The number of top comments to retrieve for each post.
     
-    :return: A list of dictionaries, each containing 'title', 'body', 'comments', 'post_id', and 'nsfw'.
+    :return: A list of dictionaries, each containing 'title', 'body', 'comments', 'post_id', 'nsfw',
+             'subreddit', and 'username'.
     """
     # Base Reddit URL
     base_url = f"https://www.reddit.com/r/{subreddit}/{sorting_method}.json?t={time_frame}&limit={num_posts}"
@@ -38,6 +39,8 @@ def fetch_reddit_posts(subreddit="askreddit", sorting_method='top', time_frame='
         title = post_info['title']
         body = post_info['selftext']
         nsfw = post_info['over_18']  # Check if the post is marked as NSFW
+        username = post_info['author']
+        subreddit_name = post_info['subreddit']
         
         # Fetch top comments for the post
         comments = fetch_top_comments(post_id, num_comments)
@@ -48,12 +51,12 @@ def fetch_reddit_posts(subreddit="askreddit", sorting_method='top', time_frame='
             'body': body,
             'comments': comments,
             'post_id': post_id,
-            'nsfw': nsfw
+            'nsfw': nsfw,
+            'username': username,
+            'subreddit': subreddit_name
         })
     
     return post_data
-
-
 
 # Fetch top comments for a given post ID
 def fetch_top_comments(post_id, num_comments):
@@ -92,11 +95,3 @@ def fetch_top_comments(post_id, num_comments):
     
     return top_comments
 
-
-print(fetch_reddit_posts( 
-    sorting_method="top", 
-    time_frame="month", 
-    num_posts=2, 
-    num_comments=100, 
-    subreddit="TwoSentenceHorror"
-))
