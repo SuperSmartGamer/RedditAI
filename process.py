@@ -57,7 +57,7 @@ def closest_sum(arr, target):
                 closest_combination = indices
                 
     print(f"Target: {target}, Closest sum: {closest}, Combination: {closest_combination}")
-    return closest_combination.sort()
+    return closest_combination
 
 
 def get_audio_length(file_path):
@@ -182,6 +182,6 @@ def main(data):
 main(fetch_reddit_posts( 
     sorting_method="top", 
     time_frame="day", 
-    num_posts=3, 
+    num_posts=1, 
     num_comments=10
 ))
