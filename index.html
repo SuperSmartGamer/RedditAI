@@ -1,0 +1,105 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+   
+   <style>
+    #back {
+    display: flex;
+    position: fixed;
+    width: 960px;  /* 320px * 3 */
+    height: 525px; /* 175px * 3 */
+    left: 50%;
+    background-color: #0E1217;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 60px;  /* 20px * 3 */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    border: 6px solid white;  /* 2px * 3 */
+}
+
+#center {
+    position: relative;
+    width: 90%;  /* 85% * 3 (adjusted to fit the new container size) */
+    height: 90%; /* 90% * 3 */
+    border: 6px solid transparent;  /* 2px * 3 */
+}
+
+#textbox {
+    color: rgb(241,243,247);
+    position: relative;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    padding-left: 15px;  /* 5px * 3 */
+    padding-top: 0px;
+    font-size: 54px;  /* 18px * 3 */
+    font-weight: 700;
+    border: 6px solid transparent;  /* 2px * 3 */
+    word-wrap: break-word;
+    white-space: normal;
+    line-height: 1.35;  /* Reduced from 4.2 to 3 for closer line spacing */
+    margin-top: -60px;  /* -20px * 3 */
+}
+
+#icon {
+    position: relative;
+    background-color: black;
+    width: 195px;  /* 65px * 3 */
+    height: 150px; /* 50px * 3 */
+    margin: 30px;  /* 10px * 3 */
+    border-radius: 50%;  /* No change */
+    overflow: hidden;  /* No change */
+}
+
+#icon img {
+    width: 100%;  /* No change */
+    height: 100%;  /* No change */
+    object-fit: cover;  /* No change */
+}
+
+#subreddit {
+    padding-top: 30px;  /* 10px * 3 */
+    width: 100%;  /* No change */
+    height: 90px;  /* 30px * 3 */
+    margin-top: 30px;  /* 10px * 3 */
+    border: 6px solid transparent;  /* 2px * 3 */
+    color: rgb(182,196,213);
+    position: relative;
+    font-family: 'Inter', sans-serif;
+    font-size: 3em;
+}
+
+#box {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 30px;  /* 10px * 3 */
+}
+
+html {
+    background-color: lawngreen;
+}
+
+   </style>
+</head>
+<body>
+
+<div id="back">
+    <div id="center">
+        <div id="box"><div id="icon">
+            <img src="channel_profile.jpg" alt="Profile Icon">
+        </div>
+        
+            <div id="subreddit">r/askreddit </div>
+        </div>
+        <div id="textbox">
+            How do you respond when someone asks how you're doing, but you're actually having a tough day?
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

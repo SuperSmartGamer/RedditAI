@@ -1,164 +1,91 @@
 import os
-import re
-from itertools import combinations
-from random import randint
-from datetime import datetime
-from moviepy.editor import VideoFileClip
-from pydub import AudioSegment
-from generate_tts import text_to_speech
-from getRed import fetch_reddit_posts
-from create import transcribe_audio_to_srt
-from videofy import create_video
-from int_to_word import *
-from moviepy.editor import VideoFileClip
-from word2number import w2n  # Ensure this is imported
+import random
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options
 
-# Converts all numbers in the text to words
-def number_to_words_in_text(text):
-    if not isinstance(text, str):  # Ensure text is a string
-        return text
-    
-    def replace(match):
-        number = match.group(0)  # Get the matched number as string
-        try:
-            # Convert the number to a word and ensure it's a string
-            return str(w2n.word_to_num(number)) if number.isdigit() else number
-        except ValueError:
-            return number  # In case the word can't be converted to a number
-    
-    return re.sub(r'\d+', replace, text)
+# Function for human-like typing
+def human_typing(element, text):
+    for char in text:
+        element.send_keys(char)
+        time.sleep(random.uniform(0.1, 0.5))  # Simulate typing with random delays
 
+# Setting up the Edge options
+options = Options()
+options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+options.add_argument("--disable-blink-features=AutomationControlled")  # Hide automation flags
+options.add_argument("--incognito")  # Use incognito mode to avoid tracking
+options.add_argument("--no-sandbox")  # To avoid potential sandbox issues
+options.add_argument("--disable-dev-shm-usage")  # Fix some memory issues
+# options.add_argument('--headless')  # Use if you need headless mode, but make sure it's not flagged
+options.add_argument("--start-maximized")  # Start browser in maximized state
+# options.add_argument('--proxy-server=http://your.proxy.address:port')  # Uncomment to use a proxy
 
-def cleanup(directory, keyword):
-    for filename in os.listdir(directory):
-        if keyword in filename:
-            file_path = os.path.join(directory, filename)
-            os.remove(file_path)
+# Use an existing user profile to make the browser appear more legitimate
+options.add_argument(r"user-data-dir=C:\path\to\your\user\profile")  # Use a valid path for your user profile
 
+# Initialize the Edge service
+service = Service(r'C:\Program Files\edgedriver_win32\msedgedriver.exe')
 
-def closest_sum(arr, target):
-    closest = 0
-    closest_combination = []
-    
-    for r in range(1, len(arr) + 1):
-        for comb in combinations(enumerate(arr), r):
-            indices, values = zip(*comb)
-            total = sum(values)
-            if total <= target and total > closest:
-                closest = total
-                closest_combination = indices
-                
-    print(f"Target: {target}, Closest sum: {closest}, Combination: {closest_combination}")
-    return closest_combination
+# Start the Edge browser with the configured options
+driver = webdriver.Edge(service=service, options=options)
 
+# Get credentials from environment variables
+email = os.getenv('YT_Username')  # Replace with your environment variable name
+password = os.getenv('YT_Password')  # Replace with your environment variable name
 
-def get_audio_length(file_path):
-    return len(AudioSegment.from_file(file_path))
+# Open the Google login page
+driver.get('https://accounts.google.com/ServiceLogin')
 
+# 1. Enter email address with human-like typing
+email_field = driver.find_element(By.ID, 'identifierId')
+human_typing(email_field, email)  # Simulate typing each letter with delay
+email_field.send_keys(Keys.RETURN)
+time.sleep(random.uniform(2, 4))  # Random delay after pressing enter
 
-def tts_logic(title, comments, output_path="temp/"+str(randint(0,1000000))+".mp3", target_value=59000):
-    clip_lengths = []
-    for x in comments:
-        comment_index = comments.index(x)
-        # Convert the comment to words, including numbers
-        comments[comment_index] = number_to_words_in_text(x)
-        print(f"Converted comment: {comments[comment_index]}")  # Ensure conversion is correct
-        # Generate speech
-        text_to_speech(comments[comment_index], f"temp/temp_{comment_index}.mp3", speed_percent=20)
-        clip_length = get_audio_length(f"temp/temp_{comment_index}.mp3")
-        clip_lengths.append(clip_length)
-        print(f"Clip length for comment {comment_index}: {clip_length / 1000} seconds")
-    
-    # Select the optimal set of comments
-    n = closest_sum(clip_lengths, target_value - 10000)
-    v = [comments[i] for i in n]
-    v = numberize(v)
-    v.insert(0, title + ". ")
-    v = ". ".join(v)
-    text_to_speech(v, output_path)
-    print(f"Total length of speech: {get_audio_length(output_path) / 1000} seconds")
-    return 0
+# 2. Enter password with human-like typing
+password_field = driver.find_element(By.NAME, 'password')
+human_typing(password_field, password)  # Simulate typing password with delay
+password_field.send_keys(Keys.RETURN)
+time.sleep(random.uniform(3, 5))  # Random delay after pressing enter
 
+# 3. Handle account selection (if multiple accounts exist)
+try:
+    account_selector = driver.find_element(By.XPATH, "//div[@class='KxwPGc']")
+    account_selector.click()
+    time.sleep(random.uniform(2, 4))  # Random delay after selecting the account
+except Exception as e:
+    print("No account selection required, or error occurred: ", e)
 
-def script(data):
-    paths = []
-    for x in data:
-        print("Working on audio #", data.index(x))
-        tts_logic(x["title"], x["comments"], output_path=f"audio/{get_date()} #{data.index(x)}.mp3")
-        audio_path = f"audio/{get_date()} #{data.index(x)}.mp3"
-        paths.append(audio_path)
-        print(f"Audio file created at: {audio_path}")
-    
-    cleanup("temp", "temp")
-    
-    # Check total duration of all audio files
-    total_duration = sum(get_audio_length(path) for path in paths) / 1000  # In seconds
-    print(f"Total duration of all audio clips: {total_duration} seconds")
-    
-    return paths
+# 4. Open YouTube upload page
+driver.get('https://www.youtube.com/upload')
+time.sleep(random.uniform(3, 5))  # Random delay after opening the upload page
 
+# 5. Upload the video
+video_path = r'C:\path\to\your_video.mp4'  # Replace with the actual path to your video
+driver.find_element(By.XPATH, '//input[@type="file"]').send_keys(video_path)
+time.sleep(random.uniform(3, 5))  # Random delay while uploading
 
-def numberize(arr):
-    for z in arr:  
-        arr[arr.index(z)] = number_to_words_in_text(str(arr.index(z)+1)+". "+z)
-    return arr
+# 6. Fill in the video title with human-like typing
+title_field = driver.find_element(By.NAME, 'title')
+human_typing(title_field, 'Your Video Title')  # Replace with your desired title
+time.sleep(random.uniform(1, 2))  # Random delay after typing the title
 
+# 7. Fill in the video description with human-like typing
+description_field = driver.find_element(By.NAME, 'description')
+human_typing(description_field, 'Your video description')  # Replace with your desired description
+time.sleep(random.uniform(1, 2))  # Random delay after typing the description
 
-def get_date():
-    return datetime.now().strftime("%m-%d-%Y")
+# 8. Submit the video
+next_button = driver.find_element(By.XPATH, '//ytcp-button[@id="next-button"]')
+next_button.click()
+time.sleep(random.uniform(3, 5))  # Random delay after clicking the button
 
+# 9. Wait for the upload to complete (adjust the time based on video size)
+time.sleep(random.uniform(60, 120))  # Adjust time based on video size or add additional logic here
 
-def trim_videos_in_directory(directory, max_length):
-    # Loop through all files in the directory
-    for filename in os.listdir(directory):
-        if filename.endswith(('.mp4', '.avi', '.mov')):  # Add other video formats if needed
-            video_path = os.path.join(directory, filename)
-            
-            # Load the video
-            video = VideoFileClip(video_path)
-            
-            # Check if the video exceeds the max_length
-            if video.duration > max_length:
-                # Trim the video to max_length
-                video = video.subclip(0, max_length)
-                
-                # Save the trimmed video, overwriting the original
-                video.write_videofile(video_path, codec="libx264")  # Specify codec for saving
-                print(f"Trimmed: {filename}")
-
-
-def main(data):
-    for x in data:
-        with open('log.txt', 'a') as file:
-            file.write(f"{x['post_id']}, \n")
-    
-    audio = script(data)
-    
-    for x in audio:
-        transcribe_audio_to_srt(x, f"subtitles/{get_date()} #{audio.index(x)}.srt")
-        video_output_path = f"reddit_videos/{get_date()} #{audio.index(x)}.mp4"
-        create_video(
-            mp3_file=x,
-            srt_file=f"subtitles/{get_date()} #{audio.index(x)}.srt",
-            output_file=video_output_path,
-            aspect_ratio="9:16",
-            background_video=f"clips/clip_{randint(1,99)}.mp4", 
-            font1="fonts/made-okine-sans-personal-use.black.otf",
-            font2="fonts/made-okine-sans-personal-use.black-outline.otf",
-            font_size=75,
-            text_color1="white",
-            text_color2="black"
-        )
-        # Check final video duration
-        video_duration = get_audio_length(video_output_path) / 1000  # In seconds
-        print(f"Final video length: {video_duration} seconds")
-       #trim_videos_in_directory(r"C:\Users\william\Desktop\Code\test\reddit\reddit_videos", 59.999)
-
-
-# Example usage
-main(fetch_reddit_posts( 
-    sorting_method="top", 
-    time_frame="day", 
-    num_posts=10, 
-    num_comments=10
-))
+# 10. Close the browser
+driver.quit()
