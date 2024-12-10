@@ -46,7 +46,7 @@ def transcribe_audio_to_srt(input_audio, output_srt_file):
 
     print(f"Subtitles saved to: {output_srt_file}")
 
-def smart_chunk_text(text, max_length=40):
+def smart_chunk_text(text, max_length=30):
     """
     Intelligently chunk text while preserving meaning and readability
     """

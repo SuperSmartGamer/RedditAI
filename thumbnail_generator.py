@@ -69,18 +69,18 @@ def thumbnail_gen(subreddit_text, textbox_text, username, output_filepath, html_
         screenshot_image.save(output_filepath)
 
         # Optionally, display the screenshot
-        screenshot_image.show()
+        #screenshot_image.show()
 
     finally:
         # Close the driver after operations
         driver.quit()
 
 # Example usage:
-"""
+
 thumbnail_gen(
     subreddit_text="r/python",
+    username="u/StillPillWill",
     textbox_text="How do you manage your time effectively?",
     output_filepath="D:/reddit/modified_page_filtered.png",
     html_file_path="file:///D:/reddit/index.html"
 )
-"""

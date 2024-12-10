@@ -13,7 +13,30 @@ from int_to_word import *
 from moviepy.editor import VideoFileClip
 from word2number import w2n  # Ensure this is imported
 from thumbnail_generator import thumbnail_gen
+import shutil
 
+
+def move_files(source_dir, target_dir):
+    """
+    Moves all files from source_dir to target_dir.
+
+    Args:
+        source_dir (str): The path of the directory to move files from.
+        target_dir (str): The path of the directory to move files to.
+    """
+    if not os.path.exists(source_dir):
+        print(f"Source directory '{source_dir}' does not exist.")
+        return
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+        print(f"Created target directory '{target_dir}'.")
+
+    for filename in os.listdir(source_dir):
+        source_file = os.path.join(source_dir, filename)
+        target_file = os.path.join(target_dir, filename)
+        if os.path.isfile(source_file):
+            shutil.move(source_file, target_file)
+            print(f"Moved: {source_file} -> {target_file}")
 
 
 def number_to_words_in_text(text):
@@ -147,6 +170,7 @@ def thumnailify(username="", subreddit="", output_path="temp", title=""):
 
 
 def main(data):
+    move_files("reddit_videos/un-uploaded", "reddit_videos")
     for x in data:
         with open('log.txt', 'a') as file:
             file.write(f"{x['post_id']}, \n")
@@ -162,22 +186,24 @@ def main(data):
         
         # Create file paths with NSFW suffix if applicable
         srt_file_name = f"subtitles/{base_file_name}{nsfw_suffix}.srt"
-        video_file_name = f"reddit_videos/{base_file_name}{nsfw_suffix}.mp4"
+        video_file_name = f"reddit_videos/un-uploaded/{base_file_name}{nsfw_suffix}.mp4"
 
         # Process the audio into subtitles and videos
         transcribe_audio_to_srt(x, srt_file_name)
+       
         create_video(
             mp3_file=x,
             srt_file=srt_file_name,
             output_file=video_file_name,
             aspect_ratio="9:16",
-            background_video=f"clips/clip_{randint(1,99)}.mp4", 
-            font1="fonts/made-okine-sans-personal-use.black.otf",
-            font2="fonts/made-okine-sans-personal-use.black-outline.otf",
+            background_video=f"clips/clip_{randint(1, 99)}.mp4",  # Random background clip
+            font="fonts/KOMIKAX_.ttf",  # Path to font
             font_size=75,
-            text_color1="white",
-            text_color2="black"
-        )
+            text_color="white",
+            stroke_color="black",  # Stroke color for text
+            stroke_width=5  # Stroke width
+                    )
+        
         
         # Check the final video duration
         video_duration = get_audio_length(video_file_name) / 1000  # Convert milliseconds to seconds
@@ -190,6 +216,6 @@ def main(data):
 main(fetch_reddit_posts( 
     sorting_method="top", 
     time_frame="day", 
-    num_posts=3, 
-    num_comments=10
+    num_posts=1, 
+    num_comments=1
 ))
