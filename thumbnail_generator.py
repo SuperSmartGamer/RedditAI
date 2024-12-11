@@ -74,9 +74,9 @@ def thumbnail_gen(subreddit_text, textbox_text, username, output_filepath, html_
     finally:
         # Close the driver after operations
         driver.quit()
-
+    return output_filepath
 # Example usage:
-
+"""
 thumbnail_gen(
     subreddit_text="r/python",
     username="u/StillPillWill",
@@ -84,3 +84,4 @@ thumbnail_gen(
     output_filepath="D:/reddit/modified_page_filtered.png",
     html_file_path="file:///D:/reddit/index.html"
 )
+"""

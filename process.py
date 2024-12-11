@@ -14,7 +14,7 @@ from moviepy.editor import VideoFileClip
 from word2number import w2n  # Ensure this is imported
 from thumbnail_generator import thumbnail_gen
 import shutil
-
+import time
 
 def move_files(source_dir, target_dir):
     """
@@ -86,6 +86,19 @@ def closest_sum(arr, target):
 def get_audio_length(file_path):
     return len(AudioSegment.from_file(file_path))
 
+def replace_in_srt(file_path, x, y):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+
+        updated_content = content.replace(x, y)
+
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(updated_content)
+        
+        print(f"Replacements completed. File updated: {file_path}.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def tts_logic(title, comments, output_path="temp/"+str(randint(0,100000000000))+".mp3", target_value=59000):
     clip_lengths = []
@@ -104,7 +117,8 @@ def tts_logic(title, comments, output_path="temp/"+str(randint(0,100000000000))+
     n = closest_sum(clip_lengths, target_value - 15000)
     v = [comments[i] for i in n]
     v = numberize(v)
-    v.insert(0, title + ". ")
+    v.insert(0, title)
+    v.insert(1," lez go ")
     v = ". ".join(v)
     text_to_speech(v, output_path)
     #add sort here
@@ -160,17 +174,37 @@ def trim_videos_in_directory(directory, max_length):
                 video.write_videofile(video_path, codec="libx264")  # Specify codec for saving
                 print(f"Trimmed: {filename}")
 
-def thumnailify(username="", subreddit="", output_path="temp", title=""):
-    thumbnail_gen(
-    subreddit_text=subreddit,
-    textbox_text=title,
-    output_filepath=output_path,
-    html_file_path="file:///D:/reddit/index.html"
-)
+def thumbnailify(username="", subreddit="", output_path="temp", title=""):
+    # Assuming thumbnail_gen generates the image and returns the path to it
+    generated_image_path = thumbnail_gen(
+        subreddit_text=subreddit,
+        textbox_text=title,
+        output_filepath=output_path,
+        html_file_path="file:///D:/reddit/index.html",
+        username=username
+    )
+
+    # Check if the image exists and wait for it to be generated
+    if not os.path.exists(generated_image_path):
+        max_wait_time = 30  # Maximum wait time (in seconds)
+        wait_interval = 0.5  # Check interval (in seconds)
+        elapsed_time = 0
+
+        while not os.path.exists(generated_image_path) and elapsed_time < max_wait_time:
+            time.sleep(wait_interval)
+            elapsed_time += wait_interval
+        
+        # If the file is still not found, raise an error
+        if not os.path.exists(generated_image_path):
+            raise TimeoutError(f"Thumbnail generation failed. File not found: {generated_image_path}")
+    
+    print(f"Thumbnail created at: {generated_image_path}")
+    return str(generated_image_path)
 
 
 def main(data):
     move_files("reddit_videos/un-uploaded", "reddit_videos")
+
     for x in data:
         with open('log.txt', 'a') as file:
             file.write(f"{x['post_id']}, \n")
@@ -178,32 +212,41 @@ def main(data):
     audio = script(data)  # Generate audio files from Reddit data
     
     for i, x in enumerate(audio):
-        # Use the same index from the audio list to get the corresponding Reddit data
         post = data[i]
         is_nsfw = post['nsfw']
         nsfw_suffix = "_nsfw" if is_nsfw else ""
         base_file_name = f"{get_date()} #{i}"
         
-        # Create file paths with NSFW suffix if applicable
         srt_file_name = f"subtitles/{base_file_name}{nsfw_suffix}.srt"
         video_file_name = f"reddit_videos/un-uploaded/{base_file_name}{nsfw_suffix}.mp4"
+        image_file_name = f"image/{base_file_name}{nsfw_suffix}.png"
 
-        # Process the audio into subtitles and videos
         transcribe_audio_to_srt(x, srt_file_name)
-       
+        replace_in_srt(srt_file_name, "Let's go.","lez go")
+
+        # Use thumbnailify to generate the image path and wait for its creation
+        trigger_image = thumbnailify(
+            subreddit=post["subreddit"],
+            title=post["title"],
+            output_path=image_file_name,
+            username=post["username"]
+        )
+
         create_video(
             mp3_file=x,
             srt_file=srt_file_name,
             output_file=video_file_name,
             aspect_ratio="9:16",
-            background_video=f"clips/clip_{randint(1, 99)}.mp4",  # Random background clip
-            font="fonts/KOMIKAX_.ttf",  # Path to font
+            background_video=f"clips/clip_{randint(1, 99)}.mp4",
+            font="fonts/KOMIKAX_.ttf",
             font_size=75,
             text_color="white",
-            stroke_color="black",  # Stroke color for text
-            stroke_width=5  # Stroke width
-                    )
-        
+            stroke_color="black",
+            stroke_width=5,
+            trigger_image=trigger_image,
+            trigger_char="lez go"
+        )
+
         
         # Check the final video duration
         video_duration = get_audio_length(video_file_name) / 1000  # Convert milliseconds to seconds
