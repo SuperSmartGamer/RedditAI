@@ -4,3 +4,5 @@
 *.srt
 *.png
 *.jpg
+client_secret.json
+*.pickle

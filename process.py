@@ -15,6 +15,8 @@ from word2number import w2n  # Ensure this is imported
 from thumbnail_generator import thumbnail_gen
 import shutil
 import time
+from autoUpload import postStuff
+
 
 def move_files(source_dir, target_dir):
     """
@@ -38,6 +40,19 @@ def move_files(source_dir, target_dir):
             shutil.move(source_file, target_file)
             print(f"Moved: {source_file} -> {target_file}")
 
+def days_since(date_str, offset=0):
+    # Convert the input date string to a datetime object
+    date_format = "%m/%d/%y"
+    input_date = datetime.strptime(date_str, date_format)
+    
+    # Get the current date
+    current_date = datetime.today()
+    
+    # Calculate the difference in days and add the offset
+    delta = current_date - input_date
+    return delta.days + offset
+
+day=days_since("12/12/24", 5)
 
 def number_to_words_in_text(text):
     if not isinstance(text, str):  # Ensure text is a string
@@ -118,7 +133,7 @@ def tts_logic(title, comments, output_path="temp/"+str(randint(0,100000000000))+
     v = [comments[i] for i in n]
     v = numberize(v)
     v.insert(0, title)
-    v.insert(1," lez go ")
+    #v.insert(1," lez go ")
     v = ". ".join(v)
     text_to_speech(v, output_path)
     #add sort here
@@ -148,7 +163,7 @@ def script(data):
 
 def numberize(arr):
     for z in arr:  
-        arr[arr.index(z)] = number_to_words_in_text(str(arr.index(z)+1)+". "+z)
+        arr[arr.index(z)] = str(arr.index(z)+1)+". "+z
     return arr
 
 
@@ -222,14 +237,14 @@ def main(data):
         image_file_name = f"image/{base_file_name}{nsfw_suffix}.png"
 
         transcribe_audio_to_srt(x, srt_file_name)
-        replace_in_srt(srt_file_name, "Let's go.","lez go")
+        #replace_in_srt(srt_file_name, "Let's go.","lez go")
 
         # Use thumbnailify to generate the image path and wait for its creation
         trigger_image = thumbnailify(
-            subreddit=post["subreddit"],
+            subreddit="r/"+post["subreddit"],
             title=post["title"],
             output_path=image_file_name,
-            username=post["username"]
+            username="u/"+post["username"]
         )
 
         create_video(
@@ -237,20 +252,30 @@ def main(data):
             srt_file=srt_file_name,
             output_file=video_file_name,
             aspect_ratio="9:16",
-            background_video=f"clips/clip_{randint(1, 99)}.mp4",
+            background_video="clips/mc-playback.mp4",#f"clips/clip_{randint(1, 99)}.mp4",
             font="fonts/KOMIKAX_.ttf",
             font_size=75,
             text_color="white",
             stroke_color="black",
             stroke_width=5,
             trigger_image=trigger_image,
-            trigger_char="lez go"
+            trigger_char="1. ",
+            fps=30
         )
 
         
         # Check the final video duration
         video_duration = get_audio_length(video_file_name) / 1000  # Convert milliseconds to seconds
         print(f"Final video length: {video_duration} seconds")
+
+    for file in os.listdir("reddit_videos/un-uploaded"):
+        # Build the full file path
+        #file_path = os.path.join("reddit_videos/un-uploaded", file)
+        pass
+        # Check if it's a file (and not a subdirectory)
+        #if os.path.isfile(file_path):
+            #print(f"Processing file: {file}")
+            #postStuff(title="Daily Reddit "+str(day), file=file_path)
 
 
 
@@ -260,5 +285,5 @@ main(fetch_reddit_posts(
     sorting_method="top", 
     time_frame="day", 
     num_posts=1, 
-    num_comments=1
+    num_comments=10
 ))
