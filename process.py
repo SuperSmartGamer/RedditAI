@@ -52,7 +52,7 @@ def days_since(date_str, offset=0):
     delta = current_date - input_date
     return delta.days + offset
 
-day=days_since("12/12/24", 5)
+
 
 def number_to_words_in_text(text):
     if not isinstance(text, str):  # Ensure text is a string
@@ -218,8 +218,9 @@ def thumbnailify(username="", subreddit="", output_path="temp", title=""):
 
 
 def main(data):
-    move_files("reddit_videos/un-uploaded", "reddit_videos")
 
+    move_files("reddit_videos/un-uploaded", "reddit_videos")
+    day=days_since("12/12/24", 5)
     for x in data:
         with open('log.txt', 'a') as file:
             file.write(f"{x['post_id']}, \n")
@@ -269,21 +270,14 @@ def main(data):
         print(f"Final video length: {video_duration} seconds")
 
     for file in os.listdir("reddit_videos/un-uploaded"):
-        # Build the full file path
-        #file_path = os.path.join("reddit_videos/un-uploaded", file)
-        pass
-        # Check if it's a file (and not a subdirectory)
-        #if os.path.isfile(file_path):
-            #print(f"Processing file: {file}")
-            #postStuff(title="Daily Reddit "+str(day), file=file_path)
+        #Build the full file path
+        file_path = os.path.join("reddit_videos/un-uploaded", file)
+        
+        #Check if it's a file (and not a subdirectory)
+        if os.path.isfile(file_path):
+            print(f"Processing file: {file}")
+            postStuff(title="Daily Reddit "+str(day), file=file_path)
 
 
 
 
-# Example usage
-main(fetch_reddit_posts( 
-    sorting_method="top", 
-    time_frame="day", 
-    num_posts=1, 
-    num_comments=10
-))
