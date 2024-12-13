@@ -20,7 +20,7 @@ def create_video(mp3_file, srt_file, output_file, trigger_char,
                               trigger_image, aspect_ratio="16:9", 
                               background_video=None, background_color=(0, 0, 0), 
                               font="Arial", font_size=60, 
-                              text_color="white", stroke_color="black", stroke_width=2):
+                              text_color="white", stroke_color="black", stroke_width=2, fps=24):
     # Ensure files exist before proceeding
     if not os.path.exists(mp3_file) or not os.path.exists(srt_file):
         raise FileNotFoundError("Ensure MP3 and SRT files exist.")
@@ -112,7 +112,7 @@ def create_video(mp3_file, srt_file, output_file, trigger_char,
 
     # Create final video
     final_video = CompositeVideoClip([background] + clips).set_audio(audio).set_duration(audio.duration)
-    final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac', audio_fps=44100)
+    final_video.write_videofile(output_file, fps=fps, codec='libx264', audio_codec='aac', audio_fps=44100)
 
     # Cleanup
     audio.close()
