@@ -63,10 +63,29 @@ def create_video(mp3_file, srt_file, output_file, trigger_char,
     # Get random start time for background video to ensure it doesn't run out of content
     if background_video:
         video_duration = VideoFileClip(background_video).duration
-        random_start_time = get_random_time(video_duration, audio.duration)
-        background = (VideoFileClip(background_video)
-                       .subclip(random_start_time, random_start_time + audio.duration)  # Extract only the necessary portion
-                       .resize((width, height)))
+        random_start_time = get_random_time(video_duration, 60)  # audio.duration
+        background = VideoFileClip(background_video).subclip(random_start_time, random_start_time + audio.duration)
+
+        # Crop the background video to match the target aspect ratio
+        video_aspect_ratio = width / height
+        background_aspect_ratio = background.size[0] / background.size[1]
+
+        if background_aspect_ratio > video_aspect_ratio:
+            # Crop sides
+            new_width = int(background.size[1] * video_aspect_ratio)
+            x_center = background.size[0] // 2
+            x1 = x_center - new_width // 2
+            x2 = x_center + new_width // 2
+            background = background.crop(x1=x1, y1=0, x2=x2, y2=background.size[1])
+        else:
+            # Crop top and bottom
+            new_height = int(background.size[0] / video_aspect_ratio)
+            y_center = background.size[1] // 2
+            y1 = y_center - new_height // 2
+            y2 = y_center + new_height // 2
+            background = background.crop(x1=0, y1=y1, x2=background.size[0], y2=y2)
+
+        background = background.resize((width, height))
     else:
         background = ColorClip(size=(width, height), color=background_color).set_duration(audio.duration)
 

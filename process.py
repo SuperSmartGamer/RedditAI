@@ -16,7 +16,7 @@ from thumbnail_generator import thumbnail_gen
 import shutil
 import time
 from autoUpload import postStuff
-
+import random
 
 def move_files(source_dir, target_dir):
     """
@@ -170,6 +170,28 @@ def numberize(arr):
 def get_date():
     return datetime.now().strftime("%m-%d-%Y")
 
+def random_clip(directory):
+    try:
+        # List of common video file extensions
+        video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv', '.wmv', '.webm']
+        
+        # Get a list of all files in the directory
+        files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        
+        # Filter files to include only video files
+        video_files = [f for f in files if any(f.lower().endswith(ext) for ext in video_extensions)]
+        
+        print(video_files)
+        
+        # Check if the directory contains any video files
+        if not video_files:
+            return None
+        
+        # Select and return a random video file
+        return directory + "/" + random.choice(video_files)
+    except FileNotFoundError:
+        print("Directory not found.")
+        return None
 
 def trim_videos_in_directory(directory, max_length):
     # Loop through all files in the directory
@@ -218,7 +240,7 @@ def thumbnailify(username="", subreddit="", output_path="temp", title=""):
 
 
 def main(data):
-
+    upload=True
     move_files("reddit_videos/un-uploaded", "reddit_videos")
     day=days_since("12/12/24", 5)
     for x in data:
@@ -253,7 +275,7 @@ def main(data):
             srt_file=srt_file_name,
             output_file=video_file_name,
             aspect_ratio="9:16",
-            background_video="clips/mc-playback.mp4",#f"clips/clip_{randint(1, 99)}.mp4",
+            background_video=random_clip("clips"),#f"clips/clip_{randint(1, 99)}.mp4",
             font="fonts/KOMIKAX_.ttf",
             font_size=75,
             text_color="white",
@@ -268,16 +290,15 @@ def main(data):
         # Check the final video duration
         video_duration = get_audio_length(video_file_name) / 1000  # Convert milliseconds to seconds
         print(f"Final video length: {video_duration} seconds")
-
-    for file in os.listdir("reddit_videos/un-uploaded"):
-        #Build the full file path
-        file_path = os.path.join("reddit_videos/un-uploaded", file)
+    if upload==True:
+        for file in os.listdir("reddit_videos/un-uploaded"):
+            #Build the full file path
+            file_path = os.path.join("reddit_videos/un-uploaded", file)
         
-        #Check if it's a file (and not a subdirectory)
-        if os.path.isfile(file_path):
-            print(f"Processing file: {file}")
-            postStuff(title="Daily Reddit "+str(day), file=file_path)
-
+            #Check if it's a file (and not a subdirectory)
+            if os.path.isfile(file_path):
+                print(f"Processing file: {file}")
+                postStuff(title="Daily Reddit "+str(day), file=file_path)
 
 
 
