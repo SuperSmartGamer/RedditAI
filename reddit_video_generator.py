@@ -6,4 +6,4 @@ main(fetch_reddit_posts(
     time_frame="day", 
     num_posts=6, 
     num_comments=10
-))
+), upload=True)

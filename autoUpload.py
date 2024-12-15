@@ -2,7 +2,7 @@ from instagrapi import Client
 import os
 import pickle
 import subprocess
-
+from random import randint
 import ffmpeg
 
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -75,28 +75,100 @@ def get_authenticated_service():
 
 from googleapiclient.http import MediaFileUpload
 
-def extract_thumbnail(video_path, thumbnail_path="thumbnail.jpg"):
+
+
+def extract_thumbnail(video_path, output_dir="temp", thumbnail_name="temp_"+str(randint(0,10000000))+".jpg", frame_time="00:00:01"):
     """
-    Extracts the first frame of the video as a thumbnail.
+    Generates a thumbnail for a given video.
 
     Args:
-        video_path (str): Path to the video file.
-        thumbnail_path (str): Path to save the extracted thumbnail.
+        video_path (str): Path to the input video file.
+        output_dir (str): Directory to save the thumbnail.
+        thumbnail_name (str): Name of the output thumbnail file.
+        frame_time (str): Timestamp to capture the frame (default is 00:00:01).
 
     Returns:
-        str: Path to the extracted thumbnail, or None if extraction fails.
+        str: Path to the generated thumbnail or an error message.
     """
-    try:
-        ffmpeg.input(video_path, ss=0).output(thumbnail_path, vframes=1).run(overwrite_output=True)
-        print(f"Thumbnail saved at: {thumbnail_path}")
-        return thumbnail_path
-    except Exception as e:
-        print("Error extracting thumbnail:", e)
-        return None
+    # Ensure paths are valid
+    if not os.path.isfile(video_path):
+        return f"Error: Video file '{video_path}' does not exist."
 
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    # Generate the full path for the thumbnail
+    thumbnail_path = os.path.join(output_dir, thumbnail_name)
+
+    try:
+        # FFmpeg command to generate the thumbnail
+        command = [
+            "ffmpeg",
+            "-y",  # Overwrite without asking
+            "-ss", frame_time,  # Seek to the desired frame time
+            "-i", video_path,  # Input video
+            "-frames:v", "1",  # Extract a single frame
+            "-q:v", "2",  # High-quality output
+            thumbnail_path  # Output file
+        ]
+
+        # Run the FFmpeg command
+        subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        if os.path.isfile(thumbnail_path):
+            return f"Thumbnail successfully created: {thumbnail_path}"
+        else:
+            return f"Error: Thumbnail file '{thumbnail_path}' was not created."
+
+    except subprocess.CalledProcessError as e:
+        return f"Error generating thumbnail: {e.stderr.decode('utf-8').strip()}"
+    except Exception as e:
+        return f"Unexpected error: {str(e)}"
+
+# Example Usage
+
+
+
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
+from googleapiclient.http import MediaFileUpload
+import os
+
+# Authenticate and build the YouTube service
+def authenticate_youtube():
+    creds = Credentials.from_authorized_user_file('token.json', ['https://www.googleapis.com/auth/youtube.force-ssl'])
+    youtube = build('youtube', 'v3', credentials=creds)
+    return youtube
+
+# Get the playlist ID for "Reddit daily"
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
+from googleapiclient.http import MediaFileUpload
+import os
+
+# Authenticate and build the YouTube service
+def authenticate_youtube():
+    creds = Credentials.from_authorized_user_file('token.json', ['https://www.googleapis.com/auth/youtube.force-ssl'])
+    youtube = build('youtube', 'v3', credentials=creds)
+    return youtube
+
+# Get the playlist ID for "Reddit daily"
+def get_playlist_id(youtube, playlist_name="Reddit daily"):
+    request = youtube.playlists().list(
+        part="snippet",
+        mine=True,
+    )
+    response = request.execute()
+
+    for playlist in response["items"]:
+        if playlist["snippet"]["title"] == playlist_name:
+            return playlist["id"]
+    return None
+
+# Upload video and add to "Reddit daily" playlist
 def upload_video_yt(youtube, video_file, title, description, category_id="22"):
     """
-    Uploads a video to YouTube with a thumbnail.
+    Uploads a video to YouTube with a thumbnail and adds it to the 'Reddit daily' playlist.
 
     Args:
         youtube: Authenticated YouTube API client.
@@ -105,13 +177,20 @@ def upload_video_yt(youtube, video_file, title, description, category_id="22"):
         description (str): Description of the video.
         category_id (str): YouTube video category ID (default is "22" for "People & Blogs").
     """
+    # Extract valid tags from the description
+    tags = [
+        tag.strip("#").strip()
+        for tag in description.replace("\n", " ").split()
+        if tag.startswith("#") and len(tag.strip("#").strip()) > 0
+    ]
+
     thumbnail_path = extract_thumbnail(video_file)
-    
+
     request_body = {
         "snippet": {
             "title": title,
-            "description": description,
-            "tags": description.split(", "),  # Generate tags from description
+            "description": description.strip(),
+            "tags": tags[:50],  # YouTube allows a max of 50 tags
             "categoryId": category_id
         },
         "status": {
@@ -125,7 +204,7 @@ def upload_video_yt(youtube, video_file, title, description, category_id="22"):
         request = youtube.videos().insert(
             part="snippet,status",
             body=request_body,
-            media_body=video_file
+            media_body=MediaFileUpload(video_file)
         )
         response = request.execute()
         print("Video uploaded successfully:", response["id"])
@@ -134,9 +213,29 @@ def upload_video_yt(youtube, video_file, title, description, category_id="22"):
         if thumbnail_path:
             youtube.thumbnails().set(
                 videoId=response["id"],
-                media_body=thumbnail_path
+                media_body=MediaFileUpload(thumbnail_path)
             ).execute()
             print("Thumbnail uploaded successfully.")
+
+        # Get the "Reddit daily" playlist ID
+        playlist_id = get_playlist_id(youtube, "Reddit daily")
+        if playlist_id:
+            # Add the video to the playlist
+            youtube.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {
+                            "kind": "youtube#video",
+                            "videoId": response["id"]
+                        }
+                    }
+                }
+            ).execute()
+            print("Video added to the 'Reddit daily' playlist.")
+        else:
+            print("Playlist 'Reddit daily' not found.")
 
     except Exception as e:
         print("Error uploading video:", e)
@@ -145,6 +244,9 @@ def upload_video_yt(youtube, video_file, title, description, category_id="22"):
         if thumbnail_path and os.path.exists(thumbnail_path):
             os.remove(thumbnail_path)
             print(f"Thumbnail file deleted: {thumbnail_path}")
+
+
+
 
 
 def postStuff(title, file):
@@ -163,4 +265,5 @@ def postStuff(title, file):
 
     upload_video_yt(youtube_service, file, title, description=description)
     upload_video(file, description= title+"     "+description)
+    
 

@@ -239,8 +239,8 @@ def thumbnailify(username="", subreddit="", output_path="temp", title=""):
     return str(generated_image_path)
 
 
-def main(data):
-    upload=True
+def main(data, upload=True):
+    
     move_files("reddit_videos/un-uploaded", "reddit_videos")
     day=days_since("12/12/24", 5)
     for x in data:
@@ -290,6 +290,7 @@ def main(data):
         # Check the final video duration
         video_duration = get_audio_length(video_file_name) / 1000  # Convert milliseconds to seconds
         print(f"Final video length: {video_duration} seconds")
+
     if upload==True:
         for file in os.listdir("reddit_videos/un-uploaded"):
             #Build the full file path
@@ -299,6 +300,6 @@ def main(data):
             if os.path.isfile(file_path):
                 print(f"Processing file: {file}")
                 postStuff(title="Daily Reddit "+str(day), file=file_path)
-
+        cleanup("temp", "temp")
 
 
