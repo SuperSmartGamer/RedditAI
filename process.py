@@ -120,7 +120,7 @@ def tts_logic(title, comments, output_path="temp/"+str(randint(0,100000000000))+
     for x in comments:
         comment_index = comments.index(x)
         # Convert the comment to words, including numbers
-        comments[comment_index] = number_to_words_in_text(x)
+        #comments[comment_index] = number_to_words_in_text(x)
         print(f"Converted comment: {comments[comment_index]}")  # Ensure conversion is correct
         # Generate speech
         text_to_speech(comments[comment_index], f"temp/temp_{comment_index}.mp3", speed_percent=20)
