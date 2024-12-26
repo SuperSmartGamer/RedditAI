@@ -38,7 +38,8 @@ def create_video(mp3_file, srt_file, output_file, trigger_char,
                               trigger_image, aspect_ratio="16:9", 
                               background_video=None, background_color=(0, 0, 0), 
                               font="Arial", font_size=60, 
-                              text_color="white", stroke_color="black", stroke_width=2, fps=24):
+                              text_color="white", stroke_color="black", stroke_width=2, fps=24, trigger_char_2="One,"):
+    
     if not os.path.exists(mp3_file) or not os.path.exists(srt_file):
         raise FileNotFoundError("Ensure MP3 and SRT files exist.")
     
@@ -104,7 +105,7 @@ def create_video(mp3_file, srt_file, output_file, trigger_char,
         end_time = time_to_seconds(sub.end)
         duration = end_time - start_time
 
-        if trigger_char in sub.text and not trigger_detected:
+        if (trigger_char in sub.text or trigger_char_2 in sub.text) and not trigger_detected:
             trigger_detected = True
 
             # Display trigger image until the start of this subtitle

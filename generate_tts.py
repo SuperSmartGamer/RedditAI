@@ -2,7 +2,7 @@ import asyncio
 import edge_tts
 import os
 
-def text_to_speech(text, output_path=None, voice="en-US-ChristopherNeural", speed_percent=0):
+def text_to_speech(text, output_path=None, voice="en-US-ChristopherNeural", speed_percent=20):
     """
     Convert text to speech and save as an MP3 file with customizable speed.
     
@@ -49,3 +49,4 @@ def text_to_speech(text, output_path=None, voice="en-US-ChristopherNeural", spee
     # Run the async function
     return asyncio.run(_convert_text())
 
+text_to_speech("Why don't you fear death?", "output.mp3", speed_percent=100)

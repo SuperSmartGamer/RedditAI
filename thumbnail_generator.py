@@ -6,9 +6,13 @@ from PIL import Image
 from io import BytesIO
 
 def thumbnail_gen(subreddit_text, textbox_text, username, output_filepath, html_file_path):
-    # Set up WebDriver (use Chrome or Firefox)
+    # Set up WebDriver with options
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")  # Run browser in headless mode (no GUI)
+    options.add_argument("--headless=new")  # Use the newer headless mode for better compatibility
+    options.add_argument("--disable-gpu")  # Avoid GPU rendering
+    options.add_argument("--disable-software-rasterizer")  # Use software rendering instead
+    options.add_argument("--window-size=1280,720")  # Set a fixed resolution for consistent rendering
+
     driver = webdriver.Chrome(options=options)
 
     # Open the HTML file
@@ -26,13 +30,9 @@ def thumbnail_gen(subreddit_text, textbox_text, username, output_filepath, html_
         textbox_element = wait.until(EC.presence_of_element_located((By.ID, 'textbox')))
         driver.execute_script("arguments[0].innerText = arguments[1]", textbox_element, textbox_text)
         
+        # Modify the username content
         username_element = wait.until(EC.presence_of_element_located((By.ID, 'username')))
         driver.execute_script("arguments[0].innerText = arguments[1]", username_element, username)
-        
-
-        # Optionally, modify other elements (for example, change text, background color, etc.)
-        # Example: Change background color of #back element
-        
 
         # Take a screenshot of the entire page
         screenshot = driver.get_screenshot_as_png()
@@ -68,13 +68,12 @@ def thumbnail_gen(subreddit_text, textbox_text, username, output_filepath, html_
         # Save the screenshot after filtering to the provided filepath
         screenshot_image.save(output_filepath)
 
-        # Optionally, display the screenshot
-        #screenshot_image.show()
-
     finally:
         # Close the driver after operations
         driver.quit()
+
     return output_filepath
+
 # Example usage:
 """
 thumbnail_gen(

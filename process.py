@@ -1,5 +1,6 @@
 import os
 import re
+from moviepy.editor import VideoFileClip, CompositeVideoClip
 from itertools import combinations
 from random import randint
 from datetime import datetime
@@ -123,7 +124,7 @@ def tts_logic(title, comments, output_path="temp/"+str(randint(0,100000000000))+
         #comments[comment_index] = number_to_words_in_text(x)
         print(f"Converted comment: {comments[comment_index]}")  # Ensure conversion is correct
         # Generate speech
-        text_to_speech(comments[comment_index], f"temp/temp_{comment_index}.mp3", speed_percent=20)
+        text_to_speech(comments[comment_index], f"temp/temp_{comment_index}.mp3", speed_percent=50)
         clip_length = get_audio_length(f"temp/temp_{comment_index}.mp3")
         clip_lengths.append(clip_length)
         print(f"Clip length for comment {comment_index}: {clip_length / 1000} seconds")
@@ -239,7 +240,36 @@ def thumbnailify(username="", subreddit="", output_path="temp", title=""):
     return str(generated_image_path)
 
 
-def main(data, upload=True):
+def overlay_video(main_video_path, secondary_video_path):
+    """
+    Overlays a small secondary video onto a main video, slightly above the bottom and centered.
+
+    Parameters:
+        main_video_path (str): Path to the main video file (also the output path).
+        secondary_video_path (str): Path to the secondary video file.
+    """
+    # Load the main and secondary videos
+    main_clip = VideoFileClip(main_video_path)
+    secondary_clip = VideoFileClip(secondary_video_path)
+
+    # Resize the secondary video to be smaller (e.g., 20% of main video's width)
+    secondary_clip = secondary_clip.resize(width=main_clip.w * 0.2)
+
+    # Calculate position: centered horizontally and slightly above the bottom
+    x_center = (main_clip.w - secondary_clip.w) / 2
+    y_position = main_clip.h - secondary_clip.h - 50  # 50 pixels above the bottom
+
+    # Position the secondary clip
+    secondary_clip = secondary_clip.set_position((x_center, y_position))
+
+    # Overlay the secondary clip onto the main clip
+    final_clip = CompositeVideoClip([main_clip, secondary_clip])
+
+    # Write the result to the same file as the main video
+    final_clip.write_videofile(main_video_path, codec="libx264", audio_codec="aac")
+
+
+def main(data, upload=False):
     
     move_files("reddit_videos/un-uploaded", "reddit_videos")
     day=days_since("12/12/24", 5)
@@ -283,6 +313,7 @@ def main(data, upload=True):
             stroke_width=5,
             trigger_image=trigger_image,
             trigger_char="1. ",
+            trigger_char_2="One,",
             fps=30
         )
 

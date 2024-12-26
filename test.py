@@ -1,73 +1,73 @@
-import time
-from moviepy.editor import ColorClip
-import subprocess
+from moviepy.editor import VideoFileClip, CompositeVideoClip
+import os
+import numpy as np
 
-def generate_video_cpu(output_file):
-    try:
-        # Start measuring time
-        start_time = time.time()
-        
-        # Generate a test video with a solid color (CPU)
-        clip = ColorClip(size=(1920, 1080), color=(255, 0, 0), duration=5)  # Red color, 5 seconds
-        clip.fps = 24  # Set FPS value
-        clip.write_videofile(output_file, codec='libx264', threads=1)
-
-        # Measure and print the time taken for CPU processing
-        end_time = time.time()
-        cpu_time = end_time - start_time
-        print(f"CPU video generation time: {cpu_time:.2f} seconds")
-
-    except Exception as e:
-        print(f"Error generating CPU video: {e}")
-
-def generate_video_gpu(output_file):
-    try:
-        # Start measuring time
-        start_time = time.time()
-
-        # Generate a test video with a solid color (GPU)
-        clip = ColorClip(size=(1920, 1080), color=(0, 255, 0), duration=5)  # Green color, 5 seconds
-        clip.fps = 24  # Set FPS value
-        clip.write_videofile(output_file, codec='libx264', threads=1, ffmpeg_params=["-c:v", "h264_nvenc"])
-
-        # Measure and print the time taken for GPU processing
-        end_time = time.time()
-        gpu_time = end_time - start_time
-        print(f"GPU video generation time: {gpu_time:.2f} seconds")
-
-    except Exception as e:
-        print(f"Error generating GPU video: {e}")
-
-def check_ffmpeg_gpu_support():
-    try:
-        # Check if ffmpeg supports GPU acceleration (CUDA)
-        result = subprocess.run(['ffmpeg', '-hwaccels'], capture_output=True, text=True)
-        if 'cuda' in result.stdout:
-            print("CUDA GPU acceleration is supported by FFmpeg.")
-            return True
-        else:
-            print("CUDA GPU acceleration is not supported by FFmpeg.")
-            return False
-    except Exception as e:
-        print(f"Error checking FFmpeg GPU support: {e}")
-        return False
-
-def main():
-    # Output file paths
-    cpu_output_file = "cpu_test_video.mp4"
-    gpu_output_file = "gpu_test_video.mp4"
+def remove_black(frame):
+    # Define black color (close to [0, 0, 0])
+    target_black = np.array([0, 0, 0])
+    tolerance = 50  # Adjust tolerance for black color range
     
-    # Check if GPU acceleration is supported
-    if not check_ffmpeg_gpu_support():
-        print("Skipping GPU rendering as CUDA is not supported.")
-        generate_video_cpu(cpu_output_file)
-    else:
-        # Generate videos on CPU and GPU
-        print("Generating video on CPU...")
-        generate_video_cpu(cpu_output_file)
-        
-        print("Generating video on GPU...")
-        generate_video_gpu(gpu_output_file)
+    # Extract RGB channels
+    rgb_frame = frame[:, :, :3]
+    
+    # Create mask for pixels close to target_black
+    mask = np.all(np.abs(rgb_frame - target_black) < tolerance, axis=-1)
+    
+    # Make black pixels transparent (keep the alpha channel intact)
+    frame[mask] = [0, 0, 0, 0]  # RGBA: Set RGB to 0 and alpha to 0 (transparent)
+    
+    return frame
+
+def overlay_video(main_video_path, secondary_video_path, scale_factor=0.1, position_from_bottom=30, output_path=None):
+    # Validate scale_factor and check if video files exist
+    if not (0 < scale_factor <= 1):
+        raise ValueError("scale_factor must be between 0 and 1")
+    
+    if not os.path.exists(main_video_path) or not os.path.exists(secondary_video_path):
+        raise FileNotFoundError("One or both video files do not exist")
+    
+    # Load the main and secondary videos
+    main_video = VideoFileClip(main_video_path)
+    secondary_video = VideoFileClip(secondary_video_path)
+    
+    # Check if the secondary video has RGBA (transparency)
+    first_frame = secondary_video.get_frame(0)
+    if first_frame.shape[2] == 4:  # RGBA format detected
+        secondary_video = secondary_video.fl_image(remove_black)
+    
+    # Resize the secondary video according to the scale_factor
+    secondary_video_resized = secondary_video.resize(width=main_video.w * scale_factor)
+    
+    # Position the secondary video (centered horizontally, with vertical offset)
+    secondary_video_position = ('center', main_video.h - secondary_video_resized.h - position_from_bottom)
+    
+    # Set the start time of the secondary video (start at the middle of the main video)
+    secondary_video_resized = secondary_video_resized.set_start(main_video.duration / 2)
+    
+    # Combine the main and secondary videos into a composite
+    final_video = CompositeVideoClip([main_video, secondary_video_resized.set_position(secondary_video_position)])
+    
+    # Output path setup (if none provided, default to appending '_overlaid')
+    if output_path is None:
+        output_path = f"{os.path.splitext(main_video_path)[0]}_overlaid.mp4"
+    
+    # Write the final video to file
+    final_video.write_videofile(output_path, codec='libx264', audio_codec='aac', threads=4, bitrate='5000k')
+    
+    # Close video clips to free resources
+    main_video.close()
+    secondary_video.close()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main_video_path =  r"reddit_videos\un-uploaded\12-25-2024 #0.mp4"
+        secondary_video_path =  "img_resources/subscribe_green.mp4"
+        scale_factor = 0.15
+        position_from_bottom = 30
+        output_path = None  # or provide a custom path for output
+
+        overlay_video(main_video_path, secondary_video_path, scale_factor, position_from_bottom, output_path)
+        print("Video overlay completed successfully.")
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
