@@ -118,29 +118,45 @@ def replace_in_srt(file_path, x, y):
 
 def tts_logic(title, comments, output_path="temp/"+str(randint(0,100000000000))+".mp3", target_value=59000):
     clip_lengths = []
-    for x in comments:
-        comment_index = comments.index(x)
-        # Convert the comment to words, including numbers
-        #comments[comment_index] = number_to_words_in_text(x)
-        print(f"Converted comment: {comments[comment_index]}")  # Ensure conversion is correct
-        # Generate speech
-        text_to_speech(comments[comment_index], f"temp/temp_{comment_index}.mp3", speed_percent=50)
-        clip_length = get_audio_length(f"temp/temp_{comment_index}.mp3")
-        clip_lengths.append(clip_length)
-        print(f"Clip length for comment {comment_index}: {clip_length / 1000} seconds")
-    
+    valid_comments = []
+
+    for comment_index, x in enumerate(comments):
+        try:
+            if not x.strip():  # Skip empty comments
+                print(f"Skipping empty comment at index {comment_index}")
+                continue
+            
+            # Convert the comment to words, including numbers
+            print(f"Processing comment at index {comment_index}: {x}")
+            text_to_speech(x, f"temp/temp_{comment_index}.mp3", speed_percent=50)
+            clip_length = get_audio_length(f"temp/temp_{comment_index}.mp3")
+            clip_lengths.append(clip_length)
+            valid_comments.append(x)
+            print(f"Clip length for comment {comment_index}: {clip_length / 1000} seconds")
+        except Exception as e:
+            print(f"Error processing comment at index {comment_index}: {e}")
+            continue
+
+    if not valid_comments:
+        print("No valid comments to process.")
+        return 0
+
     # Select the optimal set of comments
     n = closest_sum(clip_lengths, target_value - 15000)
-    v = [comments[i] for i in n]
-    v = numberize(v)
-    v.insert(0, title)
-    #v.insert(1," lez go ")
-    v = ". ".join(v)
-    text_to_speech(v, output_path)
-    #add sort here
+    selected_comments = [valid_comments[i] for i in n]
+    selected_comments = numberize(selected_comments)
+    selected_comments.insert(0, title)
+    full_text = ". ".join(selected_comments)
 
-    print(f"Total length of speech: {get_audio_length(output_path) / 1000} seconds")
+    try:
+        text_to_speech(full_text, output_path)
+        print(f"Total length of speech: {get_audio_length(output_path) / 1000} seconds")
+    except Exception as e:
+        print(f"Error generating final speech file: {e}")
+        return 0
+
     return 0
+
 
 
 def script(data):
@@ -270,34 +286,33 @@ def overlay_video(main_video_path, secondary_video_path):
 
 
 def main(data, upload=False):
-    
     move_files("reddit_videos/un-uploaded", "reddit_videos")
-    day=days_since("12/12/24", 5)
+    day = days_since("12/12/24", 5)
+
     for x in data:
         with open('log.txt', 'a') as file:
             file.write(f"{x['post_id']}, \n")
-    
+
     audio = script(data)  # Generate audio files from Reddit data
-    
+
     for i, x in enumerate(audio):
         post = data[i]
         is_nsfw = post['nsfw']
         nsfw_suffix = "_nsfw" if is_nsfw else ""
         base_file_name = f"{get_date()} #{i}"
-        
+
         srt_file_name = f"subtitles/{base_file_name}{nsfw_suffix}.srt"
         video_file_name = f"reddit_videos/un-uploaded/{base_file_name}{nsfw_suffix}.mp4"
         image_file_name = f"image/{base_file_name}{nsfw_suffix}.png"
 
         transcribe_audio_to_srt(x, srt_file_name)
-        #replace_in_srt(srt_file_name, "Let's go.","lez go")
 
         # Use thumbnailify to generate the image path and wait for its creation
         trigger_image = thumbnailify(
-            subreddit="r/"+post["subreddit"],
+            subreddit="r/" + post["subreddit"],
             title=post["title"],
             output_path=image_file_name,
-            username="u/"+post["username"]
+            username="u/" + post["username"]
         )
 
         create_video(
@@ -305,7 +320,7 @@ def main(data, upload=False):
             srt_file=srt_file_name,
             output_file=video_file_name,
             aspect_ratio="9:16",
-            background_video=random_clip("clips"),#f"clips/clip_{randint(1, 99)}.mp4",
+            background_video=random_clip("clips"),
             font="fonts/KOMIKAX_.ttf",
             font_size=75,
             text_color="white",
@@ -317,20 +332,39 @@ def main(data, upload=False):
             fps=30
         )
 
-        
         # Check the final video duration
         video_duration = get_audio_length(video_file_name) / 1000  # Convert milliseconds to seconds
         print(f"Final video length: {video_duration} seconds")
 
-    if upload==True:
+    if upload:
         for file in os.listdir("reddit_videos/un-uploaded"):
-            #Build the full file path
+            # Build the full file path
             file_path = os.path.join("reddit_videos/un-uploaded", file)
-        
-            #Check if it's a file (and not a subdirectory)
+
+            # Check if it's a file (and not a subdirectory)
             if os.path.isfile(file_path):
                 print(f"Processing file: {file}")
-                postStuff(title="Daily Reddit "+str(day), file=file_path)
+
+                # Extract post title based on file index
+                try:
+                    # Handle NSFW suffix and remove file extension
+                    file_name_without_extension = file.split('.')[0]
+                    index_part = file_name_without_extension.split(" ")[1].split("#")[1]
+
+                    if "_nsfw" in index_part:
+                        index_part = index_part.split("_")[0]
+
+                    # Convert the index part to an integer
+                    video_index = int(index_part)
+                    post_title = data[video_index]["title"]
+
+                    postStuff(title=post_title, file=file_path)
+                except (ValueError, IndexError) as e:
+                    print(f"Error processing file {file}: {e}")
+                    continue
+
         cleanup("temp", "temp")
+
+
 
 

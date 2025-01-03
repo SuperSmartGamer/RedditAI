@@ -20,7 +20,7 @@ def upload_video(file_path, description):
     try:
         # Log in to Instagram account
         cl.login(os.getenv('YT_Username'), os.getenv('YT_Password'))
-
+        print(os.getenv('YT_Username'), os.getenv('YT_Password'))
         try:
             # Upload video as a Reel
             cl.video_upload(file_path, caption=description)
@@ -60,18 +60,27 @@ def get_authenticated_service():
 
     # If no valid credentials are available, request new ones
     if not credentials or not credentials.valid:
-        if credentials and credentials.expired and credentials.refresh_token:
-            credentials.refresh(Request())  # Refresh the token if expired
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-            credentials = flow.run_local_server(port=0)  # Opens a browser for authentication
+        try:
+            if credentials and credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())  # Refresh the token if expired
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                credentials = flow.run_local_server(port=0)  # Opens a browser for authentication
 
-        # Save the credentials for the next run
-        with open(TOKEN_FILE, "wb") as token:
-            pickle.dump(credentials, token)
+            # Save the credentials for the next run
+            with open(TOKEN_FILE, "wb") as token:
+                pickle.dump(credentials, token)
+
+        except Exception as e:
+            print(f"Error refreshing or obtaining credentials: {e}")
+            if os.path.exists(TOKEN_FILE):
+                print("Deleting invalid token file.")
+                os.remove(TOKEN_FILE)
+            raise e  # Re-raise the exception for visibility
 
     # Build and return the YouTube API client
     return build("youtube", "v3", credentials=credentials)
+
 
 from googleapiclient.http import MediaFileUpload
 
@@ -116,7 +125,7 @@ def extract_thumbnail(video_path, output_dir="temp", thumbnail_name="temp_"+str(
         subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         if os.path.isfile(thumbnail_path):
-            return f"Thumbnail successfully created: {thumbnail_path}"
+            return thumbnail_path
         else:
             return f"Error: Thumbnail file '{thumbnail_path}' was not created."
 
@@ -125,7 +134,7 @@ def extract_thumbnail(video_path, output_dir="temp", thumbnail_name="temp_"+str(
     except Exception as e:
         return f"Unexpected error: {str(e)}"
 
-# Example Usage
+# Example Usage 
 
 
 

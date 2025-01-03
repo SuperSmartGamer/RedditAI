@@ -1,22 +1,26 @@
 import asyncio
 import edge_tts
 import os
+import time
 
-def text_to_speech(text, output_path=None, voice="en-US-ChristopherNeural", speed_percent=20):
+def text_to_speech(
+    text, output_path=None, voice="en-US-ChristopherNeural", speed_percent=20, retries=3, delay=2
+):
     """
-    Convert text to speech and save as an MP3 file with customizable speed.
+    Convert text to speech and save as an MP3 file with customizable speed. Retries if generation fails.
     
     Parameters:
-    - text (str): The text to convert to speech
-    - output_path (str, optional): Full path where the MP3 file will be saved
-      If not provided, creates a file in the current directory
+    - text (str): The text to convert to speech.
+    - output_path (str, optional): Full path where the MP3 file will be saved.
+      If not provided, creates a file in the current directory.
     - voice (str, optional): Voice to use. Defaults to a male US English voice.
     - speed_percent (int, optional): Speech speed adjustment in percentage. 
-      Positive values speed up, negative values slow down. 
-      Range typically between -50 and 50. Default is 0 (normal speed).
-    
+      Positive values speed up, negative values slow down.
+    - retries (int, optional): Number of times to retry if generation fails. Default is 3.
+    - delay (int, optional): Delay in seconds between retries. Default is 2 seconds.
+
     Returns:
-    - bool: True if successful, False otherwise
+    - bool: True if successful, False otherwise.
     """
     async def _convert_text():
         try:
@@ -32,7 +36,6 @@ def text_to_speech(text, output_path=None, voice="en-US-ChristopherNeural", spee
                 output_file = output_path
             
             # Calculate rate string based on percentage
-            # Edge TTS uses strings like '+10%', '-10%', or '0%'
             rate = f'{speed_percent:+}%'
             
             # Create TTS communication with rate
@@ -40,13 +43,42 @@ def text_to_speech(text, output_path=None, voice="en-US-ChristopherNeural", spee
             
             # Save the audio file
             await communicate.save(output_file)
-            print(f"Audio saved to: {output_file}")
-            return True
+            return output_file
         except Exception as e:
             print(f"Error during text-to-speech conversion: {e}")
+            return None
+
+    def _is_valid_audio(file_path):
+        """
+        Check if the generated audio file is valid.
+        """
+        if not os.path.exists(file_path):
             return False
+        # Check file size (small size might indicate an issue)
+        return os.path.getsize(file_path) > 1024  # Minimum file size in bytes
 
-    # Run the async function
-    return asyncio.run(_convert_text())
+    # Run the async function with retries
+    attempt = 0
+    while attempt < retries:
+        try:
+            audio_file = asyncio.run(_convert_text())
+            if audio_file and _is_valid_audio(audio_file):
+                print(f"Audio generated successfully: {audio_file}")
+                return True
+            else:
+                print(f"Audio validation failed. Retrying... ({attempt + 1}/{retries})")
+                attempt += 1
+                time.sleep(delay)
+        except RuntimeError as e:
+            if "already running" in str(e):
+                print("Detected an existing event loop; running within the current loop.")
+                audio_file = asyncio.create_task(_convert_text())
+                if audio_file and _is_valid_audio(audio_file):
+                    return True
+            else:
+                raise
+    print("Failed to generate valid audio after multiple attempts.")
+    return False
 
-text_to_speech("Why don't you fear death?", "output.mp3", speed_percent=100)
+# Example usage
+

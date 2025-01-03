@@ -140,8 +140,19 @@ def create_video(mp3_file, srt_file, output_file, trigger_char,
     final_video = CompositeVideoClip([background] + clips).set_audio(audio).set_duration(audio.duration)
 
     # Use NVENC for GPU acceleration and multi-threading
-    final_video.write_videofile(output_file, fps=fps, codec='h264_nvenc', audio_codec='aac', threads=8,
-                                ffmpeg_params=["-c:v", "h264_nvenc", "-preset", "fast", "-rc:v", "vbr_hq", "-tune", "fastdecode"])
+    final_video.write_videofile(
+    output_file,
+    fps=fps,
+    codec='h264_nvenc',
+    audio_codec='aac',
+    threads=4,
+    ffmpeg_params=[
+        "-c:v", "h264_nvenc",
+        "-preset", "hq",
+        "-b:v", "20M",
+        "-crf", "18"
+    ]
+)
 
     # Cleanup
     audio.close()
